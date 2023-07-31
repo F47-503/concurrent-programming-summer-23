@@ -170,9 +170,11 @@ class MSQueueWithConstantTimeRemove<E> : QueueWithRemove<E> {
             val res = markExtractedOrRemoved()
             val curNext = next.value ?: return res
             val curPrev = prev.value ?: return res
-            val res1 = curNext.prev.compareAndSet(this, curPrev)
-            val res2 = curPrev.next.compareAndSet(this, curNext)
-            if (!res1 && !res2) return res
+            curPrev.next.value = curNext
+            while(true) {
+                val curPrevNext = curNext.prev.value ?: break
+                if (curNext.prev.compareAndSet(curPrevNext, curPrev)) break
+            }
             if (curPrev.extractedOrRemoved) curPrev.remove()
             if (curNext.extractedOrRemoved) curNext.remove()
             return res
